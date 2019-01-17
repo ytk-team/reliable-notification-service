@@ -1,0 +1,28 @@
+{
+  "name": "@qtk/reliable-notification-service",
+  "version": "1.0.0",
+  "description": "reliable notification service",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vanchu001/reliable-notification-service.git"
+  },
+  "keywords": [
+    "reliable",
+    "notification",
+    "service"
+  ],
+  "author": "skip",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vanchu001/reliable-notification-service/issues"
+  },
+  "homepage": "https://github.com/vanchu001/reliable-notification-service#readme",
+  "dependencies": {
+    "amqplib": "^0.5.3",
+    "log4js": "^2.5.3"
+  }
+}
