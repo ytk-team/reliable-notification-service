@@ -53,7 +53,7 @@ let test = new Test(connParams, 'test', '123456');
     }
     const scope = "Test";
     const clientId = "12345";
-    let notification = new Notification(connParams, namespace, clientId);
+    let notification = new Notification(connParams, scope, clientId);
     //监听出错事件(包括连接出错,处理函数处理错误)
     notification.on('error', (error) => {
         console.log(error);
