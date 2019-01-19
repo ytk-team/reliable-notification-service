@@ -5,51 +5,47 @@ module.exports = class extends EventEmitter {
     constructor(connParam, scope = "qtk-reliable-notification", clientId) {
         super();
         this._connection = undefined;
-        this._subscriber = new Map();
-        this._exchangeName = `e_${scope}`;
-        this._queueName = `q_${scope}_${clientId}`;
+        this._scope = scope;
+        this._exchangeName = `e_${this._scope}`;
         this._clientId = clientId;
         this._connParam = connParam;
     }
 
     async init() {
         this._connection = await this._createConnection(this._connParam);
-        await this._connection.assertExchange(this._exchangeName, 'direct', {
+        await this._connection.assertExchange(this._exchangeName, 'topic', {
             durable: true, //交换器持久化
         });
-        await this._connection.assertQueue(this._queueName, {
-            durable: true, //队列持久化
-            autoDelete: false //避免完全没有客户端时队列被删除
-        });
-        await this._connection.bindQueue(this._queueName, this._exchangeName);
-        this._connection.consume(this._queueName, async (data) => {
-            let {event, message} = JSON.parse(data.content.toString());
-            try {
-                if (this._subscriber.has(event)) {
-                    await this._subscriber.get(event)(message);
-                }
-                this._connection.ack(data);
-            }
-            catch(error) {
-                this.emit('error', error);
-            }
-
-        }, {noAck: false});
     }
 
     async publish(event, message) {
         await this._connection.publish(
             this._exchangeName, 
-            this._namespace, 
-            Buffer.from(JSON.stringify({event, message})), 
+            event, 
+            Buffer.from(JSON.stringify(message)), 
             {
                 deliveryMode: 2 //数据持久化
             }
         );
     }
 
-    registrySubscriber(event, handler) {
-        this._subscriber.set(event, handler);
+    async registrySubscriber(event, handler) {
+        let queueName = `q_${this._scope}_${this._clientId}_${event}`;
+        await this._connection.assertQueue(queueName, {
+            durable: true, //队列持久化
+            autoDelete: false //避免完全没有客户端时队列被删除
+        });
+        await this._connection.bindQueue(queueName, this._exchangeName, event);
+        this._connection.consume(queueName, async (data) => {
+            let message = JSON.parse(data.content.toString());
+            try {
+                await handler(message);
+                this._connection.ack(data);
+            }
+            catch(error) {
+                this.emit('error', error);
+            }
+        }, {noAck: false});
     }
 
     async _createConnection(connParam) {

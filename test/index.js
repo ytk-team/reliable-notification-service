@@ -5,7 +5,7 @@ let connParams = {
     password: 'admin'
 }
 let Test = require('../index.js');
-let test = new Test(connParams, 'test', '123456');
+let test = new Test(connParams, 'test', '1234567');
 
 (async() => {
     test.on('error', (error) => {
@@ -26,14 +26,14 @@ let test = new Test(connParams, 'test', '123456');
     test.registrySubscriber('event2', (data) => {
         console.log('event2:' + JSON.stringify(data));
     });
-    setInterval(async() => {
-        try {
-            await test.publish('event1', {a: 1, b: 2});
-        }
-        catch(error) {
-            console.log('111111111111111111111111')
-            console.log(error)
-        }
-    }, 50)
+    // setInterval(async() => {
+    //     try {
+    //         await test.publish('event1', {a: 1, b: 2});
+    //     }
+    //     catch(error) {
+    //         console.log('111111111111111111111111')
+    //         console.log(error)
+    //     }
+    // }, 1000)
 
 })()
