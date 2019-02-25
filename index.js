@@ -29,8 +29,11 @@ module.exports = class extends EventEmitter {
         );
     }
 
-    async registrySubscriber(event, handler) {
+    async registrySubscriber(event, handler, queueSuffix = undefined) {
         let queueName = `q_${this._scope}_${this._clientId}_${event}`;
+        if (queueSuffix === undefined) {
+            queueName += `_${queueSuffix}`;
+        }
         await this._connection.assertQueue(queueName, {
             durable: true, //队列持久化
             autoDelete: false //避免完全没有客户端时队列被删除
