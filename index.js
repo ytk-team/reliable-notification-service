@@ -31,7 +31,7 @@ module.exports = class extends EventEmitter {
 
     async registrySubscriber(event, handler, queueSuffix = undefined) {
         let queueName = `q_${this._scope}_${this._clientId}_${event}`;
-        if (queueSuffix === undefined) {
+        if (queueSuffix !== undefined) {
             queueName += `_${queueSuffix}`;
         }
         await this._connection.assertQueue(queueName, {

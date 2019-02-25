@@ -1,6 +1,6 @@
 {
   "name": "@qtk/reliable-notification-service",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "reliable notification service",
   "main": "index.js",
   "scripts": {
