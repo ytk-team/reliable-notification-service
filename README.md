@@ -86,3 +86,39 @@ let test = new Test(connParams, 'test', '123456');
 
 })()
 ```
+
+## V1.2.0 版本内容更新
+
+`registrySubscriber` 方法新增第三个参数 `queueSuffix`（默认为 `undefined`）
+
+若调用者，传入了 `queueSuffix` ，则 Queue 名变为 `q_${scope}_${clientId}_${event}_${queueSuffix}`。该更新的目的为将对同一个事件所需要进行的操作原子化 —— 避免操作Ａ失败，导致操作Ｂ无法进行。
+
+例如：
+
+```javascript
+function a() {
+    // just do something
+    throw new Error('oh! no!!!');
+}
+function b() {
+    // just do something
+}
+notification.registrySubscriber('event1', (data) => {
+    a();b();
+});
+```
+
+因为 `a` 函数的报错，导致 `b` 函数无法进行，但我们是希望 `a` 和 `b` 是分别独立的，不相互影响，此时我们可以改成如下的形式：
+
+```javascript
+function a() {
+    // just do something
+    throw new Error('oh! no!!!');
+}
+function b() {
+    // just do something
+}
+notification.registrySubscriber('event1', (data) => a(), 'a');
+notification.registrySubscriber('event1', (data) => b(), 'b');
+```
+
