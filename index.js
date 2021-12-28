@@ -9,20 +9,29 @@ module.exports = class extends EventEmitter {
         this._exchangeName = `e_${this._scope}`;
         this._clientId = clientId;
         this._connParam = connParam;
+        this.subscriberes = [];
     }
 
-    async init() {
+    async init(isReconnect = false) {
         this._connection = await this._createConnection(this._connParam);
         await this._connection.assertExchange(this._exchangeName, 'topic', {
             durable: true, //交换器持久化
         });
+
+        if (isReconnect) {
+            this.subscriberes.forEach(subscriber => this.queueBind(
+                subscriber.event,
+                subscriber.handler,
+                subscriber.queueSuffix
+            ));
+        }
     }
 
     async publish(event, message) {
         await this._connection.publish(
-            this._exchangeName, 
-            event, 
-            Buffer.from(JSON.stringify(message)), 
+            this._exchangeName,
+            event,
+            Buffer.from(JSON.stringify(message)),
             {
                 deliveryMode: 2 //数据持久化
             }
@@ -30,6 +39,11 @@ module.exports = class extends EventEmitter {
     }
 
     async registrySubscriber(event, handler, queueSuffix = undefined) {
+        this.subscriberes.push({ event, handler, queueSuffix });
+        await this.queueBind(event, handler, queueSuffix);
+    }
+
+    async queueBind(event, handler, queueSuffix) {
         let queueName = `q_${this._scope}_${this._clientId}_${event}`;
         if (queueSuffix !== undefined) {
             queueName += `_${queueSuffix}`;
@@ -45,10 +59,10 @@ module.exports = class extends EventEmitter {
                 await handler(message);
                 this._connection.ack(data);
             }
-            catch(error) {
+            catch (error) {
                 this.emit('error', error);
             }
-        }, {noAck: false});
+        }, { noAck: false });
     }
 
     async _createConnection(connParam) {
@@ -85,10 +99,10 @@ module.exports = class extends EventEmitter {
                     try {
                         await new Promise((resolve) => setTimeout(() => resolve(), opts.reconnect * 1000));
                         this.emit('reconnect');
-                        await this.init();
+                        await this.init(true);
                         break;
                     }
-                    catch(error) {
+                    catch (error) {
                         this.emit('error', error);
                     }
                 }
@@ -97,21 +111,33 @@ module.exports = class extends EventEmitter {
                 this.emit('error', e);
             }
         });
-       
-        connection.on('close', () => {
+
+        connection.on('close', async () => {
             this.emit('close');
         });
-    
+
         channel = await connection.createConfirmChannel();
-    
+
         channel.on('error', (e) => {
             this.emit('error', e);
         });
-       
-        channel.on('close', () => {
+
+        channel.on('close', async () => {
             this.emit('close');
+            while (1) {
+                try {
+                    connection.close().catch(error => console.log(error));
+                    await new Promise((resolve) => setTimeout(() => resolve(), opts.reconnect * 1000));
+                    this.emit('reconnect');
+                    await this.init(true);
+                    break;
+                }
+                catch (error) {
+                    this.emit('error', error);
+                }
+            }
         });
-    
+
         return channel;
     }
 }
